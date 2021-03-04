@@ -1,2 +1,2 @@
-# push-push
+# Push Push
 configurable arduino pedalboard
