@@ -8,6 +8,11 @@
 // KEY_ESC
 // KEY_PAGE_DOWN
 
+/* ************************************************************************
+ *  SysEX implementation
+ */
+ 
+ 
 #include "Keyboard.h"
 #include <Bounce2.h>
 
