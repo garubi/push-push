@@ -1,3 +1,11 @@
+// Changed Keystrokes to control the Reaper Record and Play functions:
+// CTRL +r:  Record
+// SPACE : play
+
+
+
+#include <Keyboard.h>
+
 // https://www.instructables.com/id/USB-Pedal-HID-Keyboard-With-Arduino-Leonardo/
 // https://www.arduino.cc/reference/en/language/functions/usb/keyboard/
 // https://www.arduino.cc/reference/en/language/functions/usb/keyboard/keyboardmodifiers/
@@ -8,7 +16,6 @@
 // KEY_ESC
 // KEY_PAGE_DOWN
 
-#include "Keyboard.h"
 #include <Bounce2.h>
 
 //Pulsanti
@@ -20,8 +27,8 @@ const byte PEDALNEXT_LED = 9;
 const byte PEDALPREV_LED = 8;
 
 //Tasti da emulare
-const byte PEDALNEXT_KEY = KEY_PAGE_DOWN;
-const byte PEDALPREV_KEY = KEY_PAGE_UP;
+//const byte PEDALNEXT_KEY = r;
+const byte PEDALPREV_KEY = KEY_ESC;
 
 
 const byte PED_NEXT = PEDALNEXT_PIN;
@@ -35,10 +42,13 @@ Bounce ped_prev = Bounce();
 static void SendKey( byte pedal ){
   switch( pedal ){
     case PED_NEXT:
-      Keyboard.press(PEDALNEXT_KEY);
+     Keyboard.press(KEY_LEFT_CTRL);
+      Keyboard.print("r");
     break; 
     case PED_PREV:
-      Keyboard.press(PEDALPREV_KEY);
+      //Keyboard.press(PEDALPREV_KEY);
+       Keyboard.print(" ");
+
     break; 
   }
   delay(100);
