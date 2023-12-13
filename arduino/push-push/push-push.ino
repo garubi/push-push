@@ -47,7 +47,7 @@ static void SendKey( byte pedal ){
     break; 
     case PED_PREV:
       //Keyboard.press(PEDALPREV_KEY);
-       Keyboard.print(" ");
+       Keyboard.print("\");
 
     break; 
   }
