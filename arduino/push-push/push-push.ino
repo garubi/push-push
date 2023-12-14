@@ -80,15 +80,16 @@ void sendKeySequence(int buttonIndex) {
     if (key == 0) { // Se il byte è zero, termina la sequenza
       break;
     }
-    else if (key < KEY_LEFT_CTRL) { // Se il byte è minore di KEY_LEFT_CTRL, invia il tasto come un carattere
-      Keyboard.write(key);
-    }
-    else { // Se il byte è maggiore o uguale a KEY_LEFT_CTRL, invia il tasto come un codice speciale
+    // else if (key < KEY_LEFT_CTRL) { // Se il byte è minore di KEY_LEFT_CTRL, invia il tasto come un carattere
+    //   Keyboard.write(key);
+    // }
+    else { 
       Keyboard.press(key); // Premere il tasto
       delay(100); // Aggiungere un ritardo per assicurare la corretta trasmissione
-      Keyboard.release(key); // Rilasciare il tasto
+
     }
   }
+  Keyboard.releaseAll(); // Rilasciare il tasto
 }
 
 // Funzione che avvia la procedura di configurazione dei tasti
