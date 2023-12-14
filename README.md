@@ -41,4 +41,11 @@ REPL SET  [OK, FAILED ]
 per migliorare:
 - https://www.partsnotincluded.com/diy-stream-deck-mini-macro-keyboard/
 
+Nome USB device:
 
+ - https://forum.arduino.cc/t/multiple-leonardos-as-hid-joystick-how-to-change-the-names/402646
+
+ - https://gist.github.com/Hyratel/80017369fedd1bbc9eef4c8e7a896225
+
+ - https://github.com/NicoHood/HID/issues/125
+ 
