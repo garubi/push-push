@@ -23,13 +23,17 @@ int buttonState[NUM_BUTTONS];
 
 // Creare un array per memorizzare la sequenza di tasti da inviare per ogni pulsante
 byte keySequence[NUM_BUTTONS][MAX_SEQUENCE_SIZE];
+// byte  keySequence[NUM_BUTTONS][MAX_SEQUENCE_SIZE] = {
+//         {'a', 'b', 'c', KEY_LEFT_CTRL, 'g'}, // Il primo pulsante manda CTRL+C
+//         {'d', 'e', 'f', KEY_LEFT_CTRL, 'v'}, // Il secondo pulsante manda CTRL+V
+//   };
 
 // Creare una variabile per memorizzare il numero di byte letti dalla eprom
 int numBytesRead;
 
 void setup() {
   // Inizializzare la comunicazione seriale a 9600 baud
-  Serial.begin(9600);
+  Serial.begin(115200);
 
   // Inizializzare la tastiera USB
   Keyboard.begin();
@@ -45,6 +49,7 @@ void setup() {
     keySequence[i / MAX_SEQUENCE_SIZE][i % MAX_SEQUENCE_SIZE] = EEPROM.read(EEPROM_START_ADDRESS + i + 1); // I byte successivi contengono le sequenze di tasti
   }
 
+delay(1000);
   // Stampare un messaggio di benvenuto sul monitor seriale
   Serial.println("Benvenuto nello script di Arduino per inviare keystrokes.");
   Serial.println("Per modificare la configurazione dei tasti, scrivi 'config' e segui le istruzioni.");
@@ -55,6 +60,7 @@ void loop() {
   for (int i = 0; i < NUM_BUTTONS; i++) {
     buttonState[i] = digitalRead(buttonPins[i]);
     if (buttonState[i] == LOW) { // Se il pulsante è premuto (stato basso)
+    Serial.println("premuto");
       sendKeySequence(i); // Invia la sequenza di tasti associata al pulsante
       delay(500); // Aggiungi un ritardo per evitare ripetizioni accidentali
     }
@@ -67,16 +73,24 @@ void loop() {
     if (command == "config") { // Se il comando è 'config'
       configKeySequence(); // Avvia la procedura di configurazione dei tasti
     }
+    else if(command == "info"){
+        printInfo();
+    }
     else { // Se il comando non è riconosciuto
-      Serial.println("Comando non valido. Scrivi 'config' per modificare la configurazione dei tasti.");
+      Serial.println("Comando non valido. ");
+      Serial.println(command);
+      Serial.println("Scrivi 'config' per modificare la configurazione dei tasti.");
     }
   }
 }
 
 // Funzione che invia la sequenza di tasti associata a un pulsante
 void sendKeySequence(int buttonIndex) {
+    Serial.println("sendKeySequence"); 
+    Serial.println("buttonIndex"); 
   for (int i = 0; i < MAX_SEQUENCE_SIZE; i++) {
     byte key = keySequence[buttonIndex][i]; // Leggere il byte corrispondente al tasto da inviare
+    Serial.println(key);
     if (key == 0) { // Se il byte è zero, termina la sequenza
       break;
     }
@@ -90,6 +104,21 @@ void sendKeySequence(int buttonIndex) {
     }
   }
   Keyboard.releaseAll(); // Rilasciare il tasto
+}
+
+void printInfo() {
+    Serial.println("Push push è collegato");
+    Serial.println("Questa è la configurazione:");
+    for (int j = 0; j < NUM_BUTTONS; j++) {
+        Serial.print("Tasto ");
+        Serial.println(j);
+        for (int i = 0; i < MAX_SEQUENCE_SIZE; i++) {
+        byte key = keySequence[j][i]; // Leggere il byte corrispondente al tasto da inviare
+        Serial.print(key);
+        Serial.print(" ");
+        }
+        Serial.println();
+    }
 }
 
 // Funzione che avvia la procedura di configurazione dei tasti
@@ -120,6 +149,7 @@ void configKeySequence() {
       while (Serial.available() == 0) {} // Attendere che arrivi un dato dal monitor seriale
       String input = Serial.readStringUntil(' '); // Leggere il dato come una stringa fino allo spazio successivo
       input.trim(); // Rimuovere eventuali spazi o caratteri di fine linea
+      Serial.println(input);
       if (input == "") { // Se la stringa è vuota, termina la configurazione
         Serial.println("Fine della configurazione dei tasti.");
         // Aggiornare il primo byte della eprom con il numero effettivo di byte scritti
@@ -127,7 +157,10 @@ void configKeySequence() {
         return;
       }
       else { // Se la stringa non è vuota, convertirla in un byte e salvarla nell'array keySequence e nella eprom
+
+      // ma qui non la converte in un byte... qui va solo se abbiamo scritto degli interi
         byte key = input.toInt(); // Convertire la stringa in un byte
+        Serial.println(key);
         keySequence[i][j] = key; // Salvare il byte nell'array keySequence
         EEPROM.write(EEPROM_START_ADDRESS + numBytesWritten + 1, key); // Salvare il byte nella eprom
         numBytesWritten++; // Incrementare il numero di byte scritti
