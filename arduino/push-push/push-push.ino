@@ -46,8 +46,9 @@ static void SendKey( byte pedal ){
       Keyboard.print("r");
     break; 
     case PED_PREV:
-      //Keyboard.press(PEDALPREV_KEY);
-       Keyboard.print("\\");
+     Keyboard.press(KEY_LEFT_CTRL);
+     Keyboard.press(KEY_LEFT_ALT);
+      Keyboard.print("r");
 
     break; 
   }
