@@ -1,19 +1,19 @@
-// Questo script di Arduino permette di inviare keystrokes a un computer tramite una tastiera USB
-// Si possono usare fino a 4 pulsanti collegati ai pin digitali 2, 3, 4 e 5
+// Questo script di Arduino permette di inviare keystrokes a un computer emulando una tastiera USB
+// Si possono usare fino a 20 pulsanti collegati ai pin digitali 2, 3, 4 e 5 ... 
 // Ogni pulsante può inviare una sequenza di tasti configurabile, compresi i tasti di controllo non stampabili
 // La configurazione dei tasti da inviare è salvata nella eprom e può essere modificata tramite il monitor seriale
 
 #include <Keyboard.h>
 #include <EEPROM.h>
 
-// Definire il numero di pulsanti da usare (da 1 a 4)
+// Definire il numero di pulsanti da usare (da 1 a 20)
 #define NUM_BUTTONS 2
 
 // Definire i pin digitali a cui sono collegati i pulsanti
 const int buttonPins[NUM_BUTTONS] = {2, 3};
 
 // Definire la dimensione massima della sequenza di tasti da inviare per ogni pulsante (in byte)
-#define MAX_SEQUENCE_SIZE 10
+#define MAX_SEQUENCE_SIZE 5
 
 // Definire l'indirizzo iniziale della eprom dove salvare la configurazione dei tasti
 #define EEPROM_START_ADDRESS 0
