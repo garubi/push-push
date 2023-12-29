@@ -10,7 +10,7 @@
 // firmware version
 const byte VERSION_MAJOR = 0;
 const byte VERSION_MINOR = 0;
-const byte VERSION_PATCH = 1;
+const byte VERSION_PATCH = 2;
 
 const uint8_t X_MANID1 = 0x37; // Manufacturer ID 1 (UBIStage)
 const uint8_t X_MANID2 = 0x72; // Manufacturer ID 2 (UBIStage)
@@ -23,8 +23,9 @@ const byte X_REP = 0x01; // Replay
 
 const byte X_GET = 0x00; 
 const byte X_SET = 0x01;
+const byte X_ERROR = 0x7F;
 
-const byte X_FAILED = 0x00;
+const byte X_FAILED = 0x7F;
 const byte X_OK = 0x01;
 
 // Definire il numero di pulsanti da usare (da 1 a 20)
@@ -34,7 +35,7 @@ const byte X_OK = 0x01;
 const int buttonPins[NUM_BUTTONS] = {2, 3};
 
 // Definire la dimensione massima della sequenza di tasti da inviare per ogni pulsante (in byte)
-#define MAX_SEQUENCE_SIZE 5
+#define KEYS_SEQUENCE_SIZE 5
 
 // Definire l'indirizzo iniziale della eprom dove salvare la configurazione dei tasti
 #define EEPROM_START_ADDRESS 0
@@ -43,14 +44,11 @@ const int buttonPins[NUM_BUTTONS] = {2, 3};
 int buttonState[NUM_BUTTONS];
 
 // Creare un array per memorizzare la sequenza di tasti da inviare per ogni pulsante
-// byte keySequence[NUM_BUTTONS][MAX_SEQUENCE_SIZE];
-byte  keySequence[NUM_BUTTONS][MAX_SEQUENCE_SIZE] = {
-        {'a', 'b', 'c', 'z', 'g'}, // Il primo pulsante manda CTRL+C
-        {'d', 'e', 'f', 'u', 'v'}, // Il secondo pulsante manda CTRL+V
-  };
-
-// Creare una variabile per memorizzare il numero di byte letti dalla eprom
-int numBytesRead;
+byte keySequence[NUM_BUTTONS][KEYS_SEQUENCE_SIZE];
+// byte  keySequence[NUM_BUTTONS][KEYS_SEQUENCE_SIZE] = {
+//         {0, 1, 0, 127, 'g'}, 
+//         {KEY_LEFT_CTRL, KEY_LEFT_ALT, 'A', 'u', 'v'}, 
+//   };
 
 /* *************************************************************************
  *  MIDI initialization: we use MIDI only to send e receive the configuration from the editor via SysEx
@@ -63,7 +61,7 @@ void setup() {
   
   // Inizializzare la comunicazione seriale a 9600 baud
   Serial.begin(115200);
-  while(!Serial);
+  // while(!Serial);
   
   // Inizializzare la tastiera USB
   Keyboard.begin();
@@ -79,10 +77,9 @@ void setup() {
 
   
   // Leggere la configurazione dei tasti dalla eprom e metterla nell'array keySequence
-  //numBytesRead = EEPROM.read(EEPROM_START_ADDRESS); // Il primo byte indica il numero di byte da leggere
-  // for (int i = 0; i < NUM_BUTTONS*MAX_SEQUENCE_SIZE; i++) {
-  //    keySequence[i / MAX_SEQUENCE_SIZE][i % MAX_SEQUENCE_SIZE] = EEPROM.read(EEPROM_START_ADDRESS + i + 1); // I byte successivi contengono le sequenze di tasti
-  // }
+  for (int i = 0; i < NUM_BUTTONS*KEYS_SEQUENCE_SIZE; i++) {
+     keySequence[i / KEYS_SEQUENCE_SIZE][i % KEYS_SEQUENCE_SIZE] = EEPROM.read(EEPROM_START_ADDRESS + i); // I byte successivi contengono le sequenze di tasti
+  }
 
   // Stampare un messaggio di benvenuto sul monitor seriale
   Serial.println(F(" .----------------.  .----------------.  .----------------.  .----------------. "));
@@ -151,6 +148,8 @@ void loop() {
 }
 
 // Callback per gestire la ricezione dei messaggi SysEx per la configurazione
+// https://forum.arduino.cc/t/midi-sysex-sending-2-bytes-from-signed-int/930637
+
 void receiveSysExConfig( byte* sysex_message, unsigned sysExSize ) {
 
   if ( sysex_message[1] == X_MANID1 && sysex_message[2] == X_MANID2 && sysex_message[3] == X_PRODID && sysex_message[4] == X_REQ){
@@ -161,46 +160,50 @@ void receiveSysExConfig( byte* sysex_message, unsigned sysExSize ) {
           case X_GET: // reply sending the configuration to the editor
           {
             Serial.println(F("GET"));
-            uint8_t rp[10+NUM_BUTTONS*MAX_SEQUENCE_SIZE] = { X_MANID1, X_MANID2, X_PRODID, X_REP, X_GET, VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH, X_MODELID, NUM_BUTTONS };
+            uint8_t rp[11+NUM_BUTTONS*KEYS_SEQUENCE_SIZE*2] = { X_MANID1, X_MANID2, X_PRODID, X_REP, X_GET, VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH, X_MODELID, NUM_BUTTONS, KEYS_SEQUENCE_SIZE };
 
             byte count = 0;
             for (int btn = 0; btn < NUM_BUTTONS; btn++) {
-                for (int i = 0; i < MAX_SEQUENCE_SIZE; i++) {
-                  rp[10+count] = keySequence[btn][i]; // Leggere il byte corrispondente al tasto da inviare
-                  count ++;
+                for (int i = 0; i < KEYS_SEQUENCE_SIZE; i++) {
+                  byte nyb1 = ( keySequence[btn][i] >>7 ) & 0x7F ;
+                  byte nyb2 = keySequence[btn][i]  & 0x7F;
+
+                  rp[11+count] = nyb1; // Leggere il byte corrispondente al tasto da inviare
+                  rp[11+count+1] = nyb2; // Leggere il byte corrispondente al tasto da inviare
+
+                  count = count +2;
                 }
             }
+
              MIDI.sendSysEx(sizeof(rp), rp, false);
           }
           break;
           case X_SET: // receive the configuration, stores it, and replay to the editor
           {
-            // Serial.println("SET");
-            // Serial.print("V_maj: ");
-            // Serial.println(sysex_message[6]);
-            // Serial.print("V_min: ");
-            // Serial.println(sysex_message[7]);
-            // Serial.print("V_patch: ");
-            // Serial.println(sysex_message[8]);
-            // Serial.print("Model: ");
-            // Serial.println(sysex_message[9]);
-            // Serial.print("Buttons: ");
-            // Serial.println(sysex_message[10]);
-            // Serial.print("SIZE: ");
-            // Serial.println(sysExSize);
-
+            Serial.println(F("SET"));
             if (  sysex_message[6] == VERSION_MAJOR && 
                   sysex_message[7] == VERSION_MINOR && 
                   sysex_message[8] == VERSION_PATCH && 
                   sysex_message[9] == X_MODELID && 
                   sysex_message[10] == NUM_BUTTONS &&
-                  sysExSize == 1 + 10 + NUM_BUTTONS*MAX_SEQUENCE_SIZE + 1 )
+                  sysex_message[11] == KEYS_SEQUENCE_SIZE &&
+                  sysExSize == 1 + 11 + NUM_BUTTONS*KEYS_SEQUENCE_SIZE*2 + 1 )
             {
-              for (int i = 0; i < NUM_BUTTONS*MAX_SEQUENCE_SIZE; i++) {
-                byte key = sysex_message[10 + i];
-                keySequence[i / MAX_SEQUENCE_SIZE][i % MAX_SEQUENCE_SIZE] = key ;
-                // EEPROM.write(EEPROM_START_ADDRESS + i + 1, key); // Salvare il byte nella eprom
-              }              
+              byte index = 1;
+              byte eepr_index = 0;
+              for( byte btn = 0; btn < NUM_BUTTONS; btn++){
+                for(byte key = 0; key < KEYS_SEQUENCE_SIZE; key++ ){
+
+                  byte res = (sysex_message[11 + index] << 7) | sysex_message[11 + index+1];  // combine the 7 bit chunks to 14 bits in the int
+                  res = res << 2 >> 2 ;  // sign-extend as 16 bit
+                  keySequence[btn][key] = res ;
+
+                  EEPROM.write(EEPROM_START_ADDRESS + eepr_index, res); // Salvare il byte nella eprom
+                  index = index + 2;
+                  eepr_index ++;
+                }
+              }
+            
               Serial.println(F("Stored"));
               uint8_t rp[6] = { X_MANID1, X_MANID2, X_PRODID, X_REP, X_SET, X_OK };
               MIDI.sendSysEx(sizeof(rp), rp, false);
@@ -215,6 +218,8 @@ void receiveSysExConfig( byte* sysex_message, unsigned sysExSize ) {
           default:
             Serial.print(F("SysEx Action value not allowed. Received: "));
             Serial.println( sysex_message[5] );
+            uint8_t rp[6] = { X_MANID1, X_MANID2, X_PRODID, X_REP, X_ERROR, X_FAILED };
+            MIDI.sendSysEx(sizeof(rp), rp, false);  
           break;
         }
       }
@@ -227,17 +232,17 @@ void receiveSysExConfig( byte* sysex_message, unsigned sysExSize ) {
 void sendKeySequence(int buttonIndex) {
     Serial.println(F("sendKeySequence")); 
     Serial.println(buttonIndex); 
-  for (int i = 0; i < MAX_SEQUENCE_SIZE; i++) {
+  for (int i = 0; i < KEYS_SEQUENCE_SIZE; i++) {
     byte key = keySequence[buttonIndex][i]; // Leggere il byte corrispondente al tasto da inviare
     // Serial.println(key);
-    if (key == 0) { // Se il byte è zero, termina la sequenza
-      break;
-    }
-    else { 
+    // if (key == 0) { // Se il byte è zero, termina la sequenza
+    //   break;
+    // }
+    // else { 
       Keyboard.press(key); // Premere il tasto
       delay(100); // Aggiungere un ritardo per assicurare la corretta trasmissione
 
-    }
+    // }
   }
   Keyboard.releaseAll(); // Rilasciare il tasto
 }
@@ -248,7 +253,7 @@ void printInfo() {
     for (int btn = 0; btn < NUM_BUTTONS; btn++) {
         Serial.print(F("Tasto "));
         Serial.println(btn);
-        for (int i = 0; i < MAX_SEQUENCE_SIZE; i++) {
+        for (int i = 0; i < KEYS_SEQUENCE_SIZE; i++) {
         byte key = keySequence[btn][i]; // Leggere il byte corrispondente al tasto da inviare
         Serial.print(key);
         Serial.print(F(" "));
@@ -281,7 +286,7 @@ void configKeySequence() {
     Serial.print(i + 1);
     Serial.print(": ");
     // Creare un ciclo per leggere i tasti da inviare per il pulsante corrente
-    for (int btn = 0; btn < MAX_SEQUENCE_SIZE; btn++) {
+    for (int btn = 0; btn < KEYS_SEQUENCE_SIZE; btn++) {
       while (Serial.available() == 0) {} // Attendere che arrivi un dato dal monitor seriale
       String input = Serial.readStringUntil(' '); // Leggere il dato come una stringa fino allo spazio successivo
       input.trim(); // Rimuovere eventuali spazi o caratteri di fine linea
