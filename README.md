@@ -1,20 +1,19 @@
-# Push Push
-configurable arduino pedalboard
+# ![Push Push Logo](push-push-logo.png) Push Push
 
-# Midi Syex Reference:
--  http://midi.teragonaudio.com/tech/midispec.htm (qui trovi anche il sysex request device identity )
-- https://midimonitor.lim.di.unimi.it/monitor.html
-- https://studiocode.dev/
+Push Push is a very easy to build device that provides you with a number of buttons (or pedals) that can send keystrokes combinations to your computer.
 
-#usbMIDI libraries:
-
-- https://github.com/lathoub/Arduino-USBMIDI (questa sembra la più simile a quelle che ho usato con teensy)
-- https://github.com/arduino-libraries/MIDIUSB (questa è quella "originale" di arduino)
-- https://github.com/BlokasLabs/usbmidi (questa mi sembra che legga solo raw midi... boh... )
-
-# sysex CONFIG implementation
+While you can find a lot of similar DIY project on the web, Push Push is pretty unique because it can be configured to send keystrokes of your choice with it's own [editor](https://garubi.github.io/push-push-editor/), without the need to change the firmware code e withaout the need of Arduino compiler.
+Simply connect it to the [editor](https://garubi.github.io/push-push-editor/) and configure your Push Push.
 
 
+
+# MIDI sysex implementation for configuration
+
+The communication between Push Push and the editor is based on the MIDI protocol, exchanging System Exclusive Messages.
+
+While you can send the sysex message with any software that can send system exclusive, I recommend using the dedicated editor here: (https://garubi.github.io/push-push-editor/)
+
+```
             IDENTIFIER        MESSAGE_TYPE   ACTION   CONTENT_TYPE       
 F0 X_MANID1 X_MANID2 X_PRODID [REQ, REPL] [ GET, SET ]   [...]           F7
 
@@ -37,25 +36,37 @@ const byte X_ERROR = 0x7F;
 
 const byte FAILED = 0x7F;
 const byte OK = 0x01;
+```
 
 
-//Where CONTENT_TYPE is: 
+Ask the current configuration to Push Push:
 
-// Ask the current configuration to Push Push:
-REQ GET 
-// Push Push answer:
-REPL GET VERSION_MAJOR VERION_MINOR VERSION_PATCH X_MODELID BUTTON_QTY KEYS_SEQUENCE_SIZE BTN_n_MODIFIER_CODE_1 BTN_n_MODIFIER_CODE_2 BTN_n_MODIFIER_CODE_3 BTN_n_MODIFIER_CODE_4 BTN_n_KEY_CODE [...]
+`REQ GET `
 
-// Store the editor's fields as new configuration in Push Push:
-REQ SET VERSION_MAJOR VERION_MINOR VERSION_PATCH X_MODELID BUTTON_QTY KEYS_SEQUENCE_SIZE BTN_n_MODIFIER_CODE_1 BTN_n_MODIFIER_CODE_2 BTN_n_MODIFIER_CODE_3 BTN_n_MODIFIER_CODE_4 BTN_n_KEY_CODE [...]
-// Push Push answer
-REPL SET  [OK, FAILED ]
+Push Push answer:
+
+`REPL GET VERSION_MAJOR VERION_MINOR VERSION_PATCH X_MODELID BUTTON_QTY KEYS_SEQUENCE_SIZE BTN_n_MODIFIER_CODE_1 BTN_n_MODIFIER_CODE_2 BTN_n_MODIFIER_CODE_3 BTN_n_MODIFIER_CODE_4 BTN_n_KEY_CODE [...]`
+
+Store the editor's fields as new configuration in Push Push:
+
+`REQ SET VERSION_MAJOR VERION_MINOR VERSION_PATCH X_MODELID BUTTON_QTY KEYS_SEQUENCE_SIZE BTN_n_MODIFIER_CODE_1 BTN_n_MODIFIER_CODE_2 BTN_n_MODIFIER_CODE_3 BTN_n_MODIFIER_CODE_4 BTN_n_KEY_CODE [...]`
+
+Push Push answer
+
+`REPL SET  [OK, FAILED ]`
+
+# References:
+
+## usbMIDI libraries:
+
+- https://github.com/lathoub/Arduino-USBMIDI
 
 
-per migliorare:
+## macro keyboards /stream deck
+
 - https://www.partsnotincluded.com/diy-stream-deck-mini-macro-keyboard/
 
-Nome USB device:
+## change board name:
 
  - https://forum.arduino.cc/t/multiple-leonardos-as-hid-joystick-how-to-change-the-names/402646
 
