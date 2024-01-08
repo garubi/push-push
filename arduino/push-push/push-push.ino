@@ -17,9 +17,9 @@ const int buttonPins[NUM_BUTTONS] = {2, 3};
 #define KEYS_SEQUENCE_SIZE 5
 
 // firmware version
-const byte VERSION_MAJOR = 0;
+const byte VERSION_MAJOR = 1;
 const byte VERSION_MINOR = 0;
-const byte VERSION_PATCH = 2;
+const byte VERSION_PATCH = 0;
 
 const uint8_t X_MANID1 = 0x37; // Manufacturer ID 1 (UBIStage)
 const uint8_t X_MANID2 = 0x72; // Manufacturer ID 2 (UBIStage)
