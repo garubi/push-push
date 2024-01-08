@@ -7,6 +7,15 @@
 // Ogni pulsante può inviare una sequenza di tasti configurabile, compresi i tasti di controllo non stampabili
 // La configurazione dei tasti da inviare è salvata nella eprom e può essere modificata tramite System Exclusive via MIDI USB
 
+// Definire il numero di pulsanti da usare (da 1 a 20)
+#define NUM_BUTTONS 2
+
+// Definire i pin digitali a cui sono collegati i pulsanti
+const int buttonPins[NUM_BUTTONS] = {2, 3};
+
+// Definire la dimensione massima della sequenza di tasti da inviare per ogni pulsante (in byte)
+#define KEYS_SEQUENCE_SIZE 5
+
 // firmware version
 const byte VERSION_MAJOR = 0;
 const byte VERSION_MINOR = 0;
@@ -28,15 +37,6 @@ const byte X_ERROR = 0x7F;
 const byte X_FAILED = 0x7F;
 const byte X_OK = 0x01;
 
-// Definire il numero di pulsanti da usare (da 1 a 20)
-#define NUM_BUTTONS 2
-
-// Definire i pin digitali a cui sono collegati i pulsanti
-const int buttonPins[NUM_BUTTONS] = {2, 3};
-
-// Definire la dimensione massima della sequenza di tasti da inviare per ogni pulsante (in byte)
-#define KEYS_SEQUENCE_SIZE 5
-
 // Definire l'indirizzo iniziale della eprom dove salvare la configurazione dei tasti
 #define EEPROM_START_ADDRESS 0
 
@@ -45,10 +45,7 @@ int buttonState[NUM_BUTTONS];
 
 // Creare un array per memorizzare la sequenza di tasti da inviare per ogni pulsante
 byte keySequence[NUM_BUTTONS][KEYS_SEQUENCE_SIZE];
-// byte  keySequence[NUM_BUTTONS][KEYS_SEQUENCE_SIZE] = {
-//         {0, 1, 0, 127, 'g'}, 
-//         {KEY_LEFT_CTRL, KEY_LEFT_ALT, 'A', 'u', 'v'}, 
-//   };
+
 
 /* *************************************************************************
  *  MIDI initialization: we use MIDI only to send e receive the configuration from the editor via SysEx
@@ -113,7 +110,6 @@ void setup() {
   Serial.println();
 
   Serial.println(F("Benvenuto nello script di Arduino per inviare keystrokes."));
-  Serial.println(F("Per modificare la configurazione dei tasti, scrivi 'config' e segui le istruzioni."));
 }
 
 void loop() {
@@ -133,16 +129,13 @@ void loop() {
   if (Serial.available() > 0) {
     String command = Serial.readString(); // Leggere il comando come una stringa
     command.trim(); // Rimuovere eventuali spazi o caratteri di fine linea
-    if (command == "config") { // Se il comando è 'config'
-      configKeySequence(); // Avvia la procedura di configurazione dei tasti
-    }
-    else if(command == "info"){
+    if(command == "?"){
         printInfo();
     }
     else { // Se il comando non è riconosciuto
       Serial.println("Comando non valido. ");
       Serial.println(command);
-      Serial.println("Scrivi 'config' per modificare la configurazione dei tasti.");
+      Serial.println("Scrivi '?' per avere info sulla configurazione.");
     }
   }
 }
@@ -234,21 +227,50 @@ void sendKeySequence(int buttonIndex) {
     Serial.println(buttonIndex); 
   for (int i = 0; i < KEYS_SEQUENCE_SIZE; i++) {
     byte key = keySequence[buttonIndex][i]; // Leggere il byte corrispondente al tasto da inviare
-    // Serial.println(key);
-    // if (key == 0) { // Se il byte è zero, termina la sequenza
-    //   break;
-    // }
-    // else { 
-      Keyboard.press(key); // Premere il tasto
-      delay(100); // Aggiungere un ritardo per assicurare la corretta trasmissione
-
-    // }
+    Keyboard.press(key); // Premere il tasto
+    delay(100); // Aggiungere un ritardo per assicurare la corretta trasmissione
   }
   Keyboard.releaseAll(); // Rilasciare il tasto
 }
 
 void printInfo() {
-    Serial.println(F("Push push è collegato"));
+    // Stampare un messaggio di benvenuto sul monitor seriale
+  Serial.println(F(" .----------------.  .----------------.  .----------------.  .----------------. "));
+  Serial.println(F("| .--------------. || .--------------. || .--------------. || .--------------. |"));
+  Serial.println(F("| |   ______     | || | _____  _____ | || |    _______   | || |  ____  ____  | |"));
+  Serial.println(F("| |  |_   __ \\   | || ||_   _||_   _|| || |   /  ___  |  | || | |_   ||   _| | |"));
+  Serial.println(F("| |    | |__) |  | || |  | |    | |  | || |  |  (__ \\_|  | || |   | |__| |   | |"));
+  Serial.println(F("| |    |  ___/   | || |  | '    ' |  | || |   '.___`-.   | || |   |  __  |   | |"));
+  Serial.println(F("| |   _| |_      | || |   \\ `--' /   | || |  |`\\____) |  | || |  _| |  | |_  | |"));
+  Serial.println(F("| |  |_____|     | || |    `.__.'    | || |  |_______.'  | || | |____||____| | |"));
+  Serial.println(F("| |              | || |              | || |              | || |              | |"));
+  Serial.println(F("| '--------------' || '--------------' || '--------------' || '--------------' |"));
+  Serial.println(F(" '----------------'  '----------------'  '----------------'  '----------------' "));
+  Serial.println(F(" .----------------.  .----------------.  .----------------.  .----------------. "));
+  Serial.println(F("| .--------------. || .--------------. || .--------------. || .--------------. |"));
+  Serial.println(F("| |   ______     | || | _____  _____ | || |    _______   | || |  ____  ____  | |"));
+  Serial.println(F("| |  |_   __ \\   | || ||_   _||_   _|| || |   /  ___  |  | || | |_   ||   _| | |"));
+  Serial.println(F("| |    | |__) |  | || |  | |    | |  | || |  |  (__ \\_|  | || |   | |__| |   | |"));
+  Serial.println(F("| |    |  ___/   | || |  | '    ' |  | || |   '.___`-.   | || |   |  __  |   | |"));
+  Serial.println(F("| |   _| |_      | || |   \\ `--' /   | || |  |`\\____) |  | || |  _| |  | |_  | |"));
+  Serial.println(F("| |  |_____|     | || |    `.__.'    | || |  |_______.'  | || | |____||____| | |"));
+  Serial.println(F("| |              | || |              | || |              | || |              | |"));
+  Serial.println(F("| '--------------' || '--------------' || '--------------' || '--------------' |"));
+  Serial.println(F(" '----------------'  '----------------'  '----------------'  '----------------' "));
+  Serial.print( F("Version: "));
+  Serial.print(VERSION_MAJOR);
+  Serial.print(F("."));
+  Serial.print(VERSION_MINOR);
+  Serial.print(F("."));
+  Serial.print(VERSION_PATCH);
+  Serial.print(F(" Model: "));
+  Serial.print(X_MODELID);
+
+  Serial.println();
+
+  Serial.println(F("Benvenuto nello script di Arduino per inviare keystrokes."));
+
+    Serial.println(F("Push Push è collegato"));
     Serial.println(F("Questa è la configurazione:"));
     for (int btn = 0; btn < NUM_BUTTONS; btn++) {
         Serial.print(F("Tasto "));
@@ -260,56 +282,4 @@ void printInfo() {
         }
         Serial.println();
     }
-}
-
-// Funzione che avvia la procedura di configurazione dei tasti via Seriale 
-void configKeySequence() {
-  Serial.println(F("Inizio della configurazione dei tasti."));
-  Serial.println(F("Per ogni pulsante, inserisci la sequenza di tasti da inviare separati da spazi."));
-  Serial.println(F("Puoi usare i seguenti codici speciali per i tasti di controllo non stampabili:"));
-  Serial.println(F("128 = CTRL sinistro, 129 = SHIFT sinistro, 130 = ALT sinistro, 131 = GUI sinistro (Win/Command)"));
-  Serial.println(F("132 = CTRL destro, 133 = SHIFT destro, 134 = ALT destro, 135 = GUI destro (Win/Command)"));
-  Serial.println(F("136 = INVIO, 137 = ESC, 138 = BACKSPACE, 139 = TAB, 140 = SPAZIO, 141 = CANCELLA"));
-  Serial.println(F("142 = FRECCIA SINISTRA, 143 = FRECCIA DESTRA, 144 = FRECCIA SU, 145 = FRECCIA GIU"));
-  Serial.println(F("Per terminare la sequenza, inserisci uno zero."));
-  Serial.println(F("Per terminare la configurazione, inserisci una linea vuota."));
-
-  // Creare una variabile per memorizzare il numero di byte scritti nella eprom
-  int numBytesWritten = 0;
-
-  // Scrivere il primo byte nella eprom con il valore zero (sarà aggiornato alla fine con il numero effettivo di byte scritti)
-  EEPROM.write(EEPROM_START_ADDRESS, 0);
-
-  // Creare un ciclo per ogni pulsante
-  for (int i = 0; i < NUM_BUTTONS; i++) {
-    Serial.print(F("Pulsante "));
-    Serial.print(i + 1);
-    Serial.print(": ");
-    // Creare un ciclo per leggere i tasti da inviare per il pulsante corrente
-    for (int btn = 0; btn < KEYS_SEQUENCE_SIZE; btn++) {
-      while (Serial.available() == 0) {} // Attendere che arrivi un dato dal monitor seriale
-      String input = Serial.readStringUntil(' '); // Leggere il dato come una stringa fino allo spazio successivo
-      input.trim(); // Rimuovere eventuali spazi o caratteri di fine linea
-      Serial.println(input);
-      if (input == "") { // Se la stringa è vuota, termina la configurazione
-        Serial.println(F("Fine della configurazione dei tasti."));
-        // Aggiornare il primo byte della eprom con il numero effettivo di byte scritti
-        EEPROM.write(EEPROM_START_ADDRESS, numBytesWritten);
-        return;
-      }
-      else { // Se la stringa non è vuota, convertirla in un byte e salvarla nell'array keySequence e nella eprom
-
-      // ma qui non la converte in un byte... qui va solo se abbiamo scritto degli interi
-        byte key = input.toInt(); // Convertire la stringa in un byte
-        Serial.println(key);
-        keySequence[i][btn] = key; // Salvare il byte nell'array keySequence
-        EEPROM.write(EEPROM_START_ADDRESS + numBytesWritten + 1, key); // Salvare il byte nella eprom
-        numBytesWritten++; // Incrementare il numero di byte scritti
-        if (key == 0) { // Se il byte è zero, termina la sequenza per il pulsante corrente
-          break;
-        }
-      }
-    }
-    Serial.println(); // Andare a capo
-  }
 }
