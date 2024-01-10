@@ -1,90 +1,77 @@
 # ![Push Push Logo](push-push-logo.png) Push Push
 
-Push Push is a very easy to build device (based on Arduino) that provides you with a number of buttons (or pedals) that can send keystrokes combinations to your computer.
+Push Push is a very easy to build device (based on Arduino) that allows you to send keystrokes to a computer by emulating a USB keyboard.
 
-While you can find a lot of similar DIY project on the web, Push Push is pretty unique because it can be configured to send keystrokes of your choice with it's own [editor](https://garubi.github.io/push-push-editor/), without the need to change the firmware code e withaout the need of Arduino compiler.
-Simply connect it to the [editor](https://garubi.github.io/push-push-editor/) and configure your Push Push.
+Up to 20 buttons can be used connected to digital pins 2, 3, 4 and 5... 
+Each button can send a configurable keystroke, including non-printable controls 
 
-![An animated preview of the Push Push editor](animated-editor-preview.gif)
+While you can find a lot of similar DIY project on the web, **Push Push is pretty unique because it can be configured with it's own [editor](https://garubi.github.io/push-push-editor/)** to send keystrokes of your choice, without the need to change the firmware code e without the need of Arduino compiler.
+You simply connect it to the [editor](https://garubi.github.io/push-push-editor/) and configure your Push Push.
 
 # How to build it
 
 ## The hardware 
+The hardware part is really basic: they are just pushbuttons connected to an Arduino.
+
+The script expects to be run on a **Arduino Leonardo** or **Arduino Pro Micro**, but it should run without problems on any boards that supports `HID` protocol, like *Leonardo*, *Micro*, *Due*, *Zero*, *UNO R4 Minima*, *UNO R4 WiFi*, *Giga R1*, *Nano ESP32*, *MKR Family* (i.e. all the boards supported by the [Keyboard library](https://www.arduino.cc/reference/en/language/functions/usb/keyboard/))
+
+All you have to do is connect one end of each push button to the GND pin and the other to one of the available digital pins.
+
+Then update the script (see [section below](#the-software)) with the number of buttons connected and the digital pins they are connected to
+
+You can find some example schematics in the [`/schematics`](/schematics/) folder
+
+![A wiring example for 2 buttons](/schematics/wiring-example.png)
 
 ## The software
+If you are using just 2 buttons, you can use the `push-push.ino` file included in the [/arduino/push-push](/arduino/push-push/) folder without any modification. Just install the required libraries (see below), compile and upload it to your Arduino.
+
+If you have a different number of buttons, you have to change just two rows in the script
+
+At the beginning the script, find the following section and change the buttons count  and Pin numbers with yours
+```C++
+// *************** START EDITING HERE *********************** //
+// Depending on the number of buttons you'll use
+// edit the following defines
+
+  // Write the number of buttons used (For Arduino Leonardo I recommend no more than 20)
+  #define NUM_BUTTONS 2
+
+  // Write the Digital Pins where the buttons are connected to
+  const int buttonPins[NUM_BUTTONS] = {2, 3};
+
+// *************** STOP EDITING HERE  ********************** //
+```
+When finished, save the script, compile and upload
+
+>[!WARNING]
+>Be sure to have the following libraries installed in your IDE before compiling.
+>
+>- [FortySevenEffects MIDI Library](https://github.com/FortySevenEffects/arduino_midi_library)
+>- [lathoub Arduino-USBMIDI](https://github.com/lathoub/Arduino-USBMIDI)
+>- [Arduino Keyboard library](https://www.arduino.cc/reference/en/language/functions/usb/keyboard/)
+>- [Arduino EEPROM Library](https://docs.arduino.cc/learn/built-in-libraries/eeprom)
+
 
 ## The configuration
+The strength of Push Push is the ease of configuration: you don't need to modify the Arduino code or use complex software to configure the key sequences to send: just use the **Push Push Editor**.
 
-# References
+[**>>>> GO TO PUSH PUSH EDITOR <<<<**](https://garubi.github.io/push-push-editor/)
 
-## MIDI sysex implementation for configuration
+The communication between Push Push and the editor is based on the MIDI protocol, exchanging System Exclusive Messages. 
+If you are curious you can find the implemetation details in the [SYSEX-MIDI-IMPLEMENTATION.md](SYSEX-MIDI-IMPLEMENTATION) file
 
-The communication between Push Push and the editor is based on the MIDI protocol, exchanging System Exclusive Messages.
+### How to install and use the Push Push Editor
+Since the editor is contained in a web page, you don't have to install anything: just open the editor page and follow the simple instructions.
+The editor works on desktop computers, tablets and mobile phones, on any operating system: all you need is an internet browser and a USB port to connect Push Push to.
 
-While you can send the sysex message with any software that can send system exclusive, I recommend using the dedicated editor here: (https://garubi.github.io/push-push-editor/)
+Here is a preview:
 
-```
-            IDENTIFIER        MESSAGE_TYPE   ACTION   CONTENT_TYPE       
-F0 X_MANID1 X_MANID2 X_PRODID [REQ, REPL] [ GET, SET ]   [...]           F7
+![An animated preview of the Push Push editor](animated-editor-preview.gif)
 
-const uint8_t X_MANID1 = 0x37; // Manufacturer ID 1  (UBIStage)
-const uint8_t X_MANID2 = 0x72; // Manufacturer ID 2  (UBIStage)
-const uint8_t X_PRODID = 0x10; // Product ID (Push Push)
+[**>>>> GO TO PUSH PUSH EDITOR <<<<**](https://garubi.github.io/push-push-editor/)
 
-const uint8_t X_MODELID = 0x10; // Model ID (Specific Push Push implementations: num of buttons etc)
-
-const byte VERSION_MAJOR = 1;
-const byte VERION_MINOR = 0;
-const byte VERSION_PATCH = 0;
-
-const byte REQ = 0x00; // Request
-const byte REP = 0x01; // Replay
-
-const byte GET = 0x00; 
-const byte SET = 0x01;
-const byte X_ERROR = 0x7F;
-
-const byte FAILED = 0x7F;
-const byte OK = 0x01;
-```
-
-
-### The Editor ask the current configuration to Push Push:
-
-`F0 X_MANID1 X_MANID2 X_PRODID REQ GET F7`
-
-**Push Push answer:**
-
-`F0 X_MANID1 X_MANID2 X_PRODID REP GET VERSION_MAJOR VERION_MINOR VERSION_PATCH X_MODELID BUTTON_QTY KEYS_SEQUENCE_SIZE BTN_n_MODIFIER_CODE_1 BTN_n_MODIFIER_CODE_2 BTN_n_MODIFIER_CODE_3 BTN_n_MODIFIER_CODE_4 BTN_n_KEY_CODE [...] F7`
-
-### The Editor stores a new configuration in Push Push:
-
-`F0 X_MANID1 X_MANID2 X_PRODID REQ SET VERSION_MAJOR VERION_MINOR VERSION_PATCH X_MODELID BUTTON_QTY KEYS_SEQUENCE_SIZE BTN_n_MODIFIER_CODE_1 BTN_n_MODIFIER_CODE_2 BTN_n_MODIFIER_CODE_3 BTN_n_MODIFIER_CODE_4 BTN_n_KEY_CODE [...] F7`
-
-**Push Push answer**
-
-`F0 X_MANID1 X_MANID2 X_PRODID REP SET  [OK, FAILED ] F7`
-
-### Push Push receives a unknown command
-
-**Push Push reply**
-
-`F0 X_MANID1 X_MANID2 X_PRODID REP X_ERROR F7`
-
-## usbMIDI libraries:
-
-- https://github.com/lathoub/Arduino-USBMIDI
-
-
-## macro keyboards /stream deck
-
-- https://www.partsnotincluded.com/diy-stream-deck-mini-macro-keyboard/
-
-## how to change board name:
-
- - https://forum.arduino.cc/t/multiple-leonardos-as-hid-joystick-how-to-change-the-names/402646
-
- - https://gist.github.com/Hyratel/80017369fedd1bbc9eef4c8e7a896225
-
- - https://github.com/NicoHood/HID/issues/125
- 
+### How to know the current Push Push configuration
+You have two way to read the current configuration: 
+1. The easy way: Connect to the [Push Push Editor](https://garubi.github.io/push-push-editor/) and you will see all the configurations
+1. The "developer" way: Open the Arduino Serial Monitor and type `?` then push `ENTER`. Push Push will display informations on the Serial Monitor 

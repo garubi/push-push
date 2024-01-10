@@ -2,24 +2,33 @@
 #include <Keyboard.h>
 #include <EEPROM.h>
 
-// Questo script di Arduino permette di inviare keystrokes a un computer emulando una tastiera USB
-// Si possono usare fino a 20 pulsanti collegati ai pin digitali 2, 3, 4 e 5 ... 
-// Ogni pulsante può inviare una sequenza di tasti configurabile, compresi i tasti di controllo non stampabili
-// La configurazione dei tasti da inviare è salvata nella eprom e può essere modificata tramite System Exclusive via MIDI USB
+// This Arduino script allows you to send keystrokes to a computer by emulating a USB keyboard. 
+// Up to 20 buttons can be used connected to digital pins 2, 3, 4 and 5... 
+// Each button can send a configurable keystroke, including non-printable controls 
+// The configuration of the keys to be sent is saved in the eprom and can be modified via System Exclusive via MIDI USB
 
-// Definire il numero di pulsanti da usare (da 1 a 20)
-#define NUM_BUTTONS 2
+// *************** START EDITING HERE *********************** //
+// Depending on the number of buttons you'll use
+// edit the following defines
 
-// Definire i pin digitali a cui sono collegati i pulsanti
-const int buttonPins[NUM_BUTTONS] = {2, 3};
+  // Write the number of buttons used (For Arduino Leonardo I recommend no more than 20)
+  #define NUM_BUTTONS 2
 
-// Definire la dimensione massima della sequenza di tasti da inviare per ogni pulsante (in byte)
+  // Write the Digital Pins where the buttons are connected
+  const int buttonPins[NUM_BUTTONS] = {2, 3};
+
+// *************** STOP EDITING HERE  ********************** //
+
+// Define the maximum size of the keystroke to send for each button (in bytes)
 #define KEYS_SEQUENCE_SIZE 5
 
 // firmware version
 const byte VERSION_MAJOR = 1;
 const byte VERSION_MINOR = 0;
-const byte VERSION_PATCH = 0;
+const byte VERSION_PATCH = 1;
+
+// ********************************************************* //
+// SysEx implementation for remote configuration             //
 
 const uint8_t X_MANID1 = 0x37; // Manufacturer ID 1 (UBIStage)
 const uint8_t X_MANID2 = 0x72; // Manufacturer ID 2 (UBIStage)
@@ -36,96 +45,68 @@ const byte X_ERROR = 0x7F;
 
 const byte X_FAILED = 0x7F;
 const byte X_OK = 0x01;
+// ********************************************************* //
 
-// Definire l'indirizzo iniziale della eprom dove salvare la configurazione dei tasti
+// Define the initial address of the EPROM where to save the key configuration
 #define EEPROM_START_ADDRESS 0
 
-// Creare un array per memorizzare lo stato dei pulsanti
+// Create an array to store the state of the buttons
 int buttonState[NUM_BUTTONS];
 
-// Creare un array per memorizzare la sequenza di tasti da inviare per ogni pulsante
+// Create an array to store the keystroke to send for each button
 byte keySequence[NUM_BUTTONS][KEYS_SEQUENCE_SIZE];
 
 
-/* *************************************************************************
- *  MIDI initialization: we use MIDI only to send e receive the configuration from the editor via SysEx
- */
-
+// MIDI initialization: we use MIDI only to send e receive the configuration from the editor via SysEx
 USBMIDI_CREATE_DEFAULT_INSTANCE();
 
 void setup() {
   // pinMode(LED_BUILTIN, OUTPUT);
   
-  // Inizializzare la comunicazione seriale a 9600 baud
+  // Initialize the serial communication at 9600 baud
   Serial.begin(115200);
-  // while(!Serial);
+  // while(!Serial); // commenting out becouse it blocks the MIDI over USB communication (Why???????)
   
-  // Inizializzare la tastiera USB
+  // Initialize USB keyboard
   Keyboard.begin();
 
-  // Inizializzare il MIDI per comunicare con l'editor via SysEx
+  // Initialize MIDI to communicate with the editor via SysEx
   MIDI.begin(1);
   MIDI.setHandleSystemExclusive(receiveSysExConfig);
 
-  // Impostare i pin dei pulsanti come input con resistenza di pull-up interna
+  // Set the button pins as inputs with internal pull-up resistor
   for (int i = 0; i < NUM_BUTTONS; i++) {
     pinMode(buttonPins[i], INPUT_PULLUP);
   }
 
   
-  // Leggere la configurazione dei tasti dalla eprom e metterla nell'array keySequence
+  // Read the key configuration from the eprom and put it in the keySequence array
   for (int i = 0; i < NUM_BUTTONS*KEYS_SEQUENCE_SIZE; i++) {
      keySequence[i / KEYS_SEQUENCE_SIZE][i % KEYS_SEQUENCE_SIZE] = EEPROM.read(EEPROM_START_ADDRESS + i); // I byte successivi contengono le sequenze di tasti
   }
 
-  // Stampare un messaggio di benvenuto sul monitor seriale
-  Serial.println(F(" .----------------.  .----------------.  .----------------.  .----------------. "));
-  Serial.println(F("| .--------------. || .--------------. || .--------------. || .--------------. |"));
-  Serial.println(F("| |   ______     | || | _____  _____ | || |    _______   | || |  ____  ____  | |"));
-  Serial.println(F("| |  |_   __ \\   | || ||_   _||_   _|| || |   /  ___  |  | || | |_   ||   _| | |"));
-  Serial.println(F("| |    | |__) |  | || |  | |    | |  | || |  |  (__ \\_|  | || |   | |__| |   | |"));
-  Serial.println(F("| |    |  ___/   | || |  | '    ' |  | || |   '.___`-.   | || |   |  __  |   | |"));
-  Serial.println(F("| |   _| |_      | || |   \\ `--' /   | || |  |`\\____) |  | || |  _| |  | |_  | |"));
-  Serial.println(F("| |  |_____|     | || |    `.__.'    | || |  |_______.'  | || | |____||____| | |"));
-  Serial.println(F("| |              | || |              | || |              | || |              | |"));
-  Serial.println(F("| '--------------' || '--------------' || '--------------' || '--------------' |"));
-  Serial.println(F(" '----------------'  '----------------'  '----------------'  '----------------' "));
-  Serial.println(F(" .----------------.  .----------------.  .----------------.  .----------------. "));
-  Serial.println(F("| .--------------. || .--------------. || .--------------. || .--------------. |"));
-  Serial.println(F("| |   ______     | || | _____  _____ | || |    _______   | || |  ____  ____  | |"));
-  Serial.println(F("| |  |_   __ \\   | || ||_   _||_   _|| || |   /  ___  |  | || | |_   ||   _| | |"));
-  Serial.println(F("| |    | |__) |  | || |  | |    | |  | || |  |  (__ \\_|  | || |   | |__| |   | |"));
-  Serial.println(F("| |    |  ___/   | || |  | '    ' |  | || |   '.___`-.   | || |   |  __  |   | |"));
-  Serial.println(F("| |   _| |_      | || |   \\ `--' /   | || |  |`\\____) |  | || |  _| |  | |_  | |"));
-  Serial.println(F("| |  |_____|     | || |    `.__.'    | || |  |_______.'  | || | |____||____| | |"));
-  Serial.println(F("| |              | || |              | || |              | || |              | |"));
-  Serial.println(F("| '--------------' || '--------------' || '--------------' || '--------------' |"));
-  Serial.println(F(" '----------------'  '----------------'  '----------------'  '----------------' "));
-  Serial.print( F("Version: "));
-  Serial.print(VERSION_MAJOR);
-  Serial.print(F("."));
-  Serial.print(VERSION_MINOR);
-  Serial.print(F("."));
-  Serial.print(VERSION_PATCH);
-  Serial.println();
-
-  Serial.println(F("Benvenuto nello script di Arduino per inviare keystrokes."));
+  printInfo();
 }
 
 void loop() {
    MIDI.read();
 
-  // Leggere lo stato dei pulsanti e inviare la sequenza di tasti corrispondente se premuti
+// **************** SEND KEYSTROKE WHEN BUTTON PRESSED ************************ //
+
+  // Read the state of the buttons and send the corresponding keystroke if pressed
   for (int i = 0; i < NUM_BUTTONS; i++) {
     buttonState[i] = digitalRead(buttonPins[i]);
-    if (buttonState[i] == LOW) { // Se il pulsante è premuto (stato basso)
+    if (buttonState[i] == LOW) { // If the button is pressed (low state)
     Serial.println(F("premuto"));
-      sendKeySequence(i); // Invia la sequenza di tasti associata al pulsante
-      delay(500); // Aggiungi un ritardo per evitare ripetizioni accidentali
+      sendKeySequence(i); // Sends the keystroke associated with the button
+      delay(500); // Add a delay to avoid accidental repeats
     }
   }
 
-  // Controllare se è arrivato un comando dal monitor seriale
+// **************** PRINT DEVICE'S INFO ON SERIAL MONITOR ************************ //
+// ****************** WHEN YOU TYPE ? + ENTER ON CONSOLE  ************************ //
+
+  // Check if a command has arrived from the serial monitor
   if (Serial.available() > 0) {
     String command = Serial.readString(); // Leggere il comando come una stringa
     command.trim(); // Rimuovere eventuali spazi o caratteri di fine linea
@@ -140,8 +121,8 @@ void loop() {
   }
 }
 
-// Callback per gestire la ricezione dei messaggi SysEx per la configurazione
-// https://forum.arduino.cc/t/midi-sysex-sending-2-bytes-from-signed-int/930637
+
+// Callback to manage the receipt of SysEx messages for configuration
 
 void receiveSysExConfig( byte* sysex_message, unsigned sysExSize ) {
 
@@ -158,11 +139,14 @@ void receiveSysExConfig( byte* sysex_message, unsigned sysExSize ) {
             byte count = 0;
             for (int btn = 0; btn < NUM_BUTTONS; btn++) {
                 for (int i = 0; i < KEYS_SEQUENCE_SIZE; i++) {
+
+                  // Sysex has only 7 bit so for each byte representing a keystroke we have to split it in two
+                  // see: https://forum.arduino.cc/t/midi-sysex-sending-2-bytes-from-signed-int/930637
                   byte nyb1 = ( keySequence[btn][i] >>7 ) & 0x7F ;
                   byte nyb2 = keySequence[btn][i]  & 0x7F;
 
-                  rp[11+count] = nyb1; // Leggere il byte corrispondente al tasto da inviare
-                  rp[11+count+1] = nyb2; // Leggere il byte corrispondente al tasto da inviare
+                  rp[11+count] = nyb1; 
+                  rp[11+count+1] = nyb2; 
 
                   count = count +2;
                 }
@@ -187,11 +171,13 @@ void receiveSysExConfig( byte* sysex_message, unsigned sysExSize ) {
               for( byte btn = 0; btn < NUM_BUTTONS; btn++){
                 for(byte key = 0; key < KEYS_SEQUENCE_SIZE; key++ ){
 
+                  // Sysex has only 7 bit so we need to combine the 7 bit chunks for represent a keystroke
+                  // see: https://forum.arduino.cc/t/midi-sysex-sending-2-bytes-from-signed-int/930637
                   byte res = (sysex_message[11 + index] << 7) | sysex_message[11 + index+1];  // combine the 7 bit chunks to 14 bits in the int
                   res = res << 2 >> 2 ;  // sign-extend as 16 bit
                   keySequence[btn][key] = res ;
 
-                  EEPROM.write(EEPROM_START_ADDRESS + eepr_index, res); // Salvare il byte nella eprom
+                  EEPROM.write(EEPROM_START_ADDRESS + eepr_index, res); // Save the byte in eprom
                   index = index + 2;
                   eepr_index ++;
                 }
@@ -221,20 +207,21 @@ void receiveSysExConfig( byte* sysex_message, unsigned sysExSize ) {
         }
 }
 
-// Funzione che invia la sequenza di tasti associata a un pulsante
+// Function that sends the keystroke associated with a button
 void sendKeySequence(int buttonIndex) {
     Serial.println(F("sendKeySequence")); 
     Serial.println(buttonIndex); 
   for (int i = 0; i < KEYS_SEQUENCE_SIZE; i++) {
-    byte key = keySequence[buttonIndex][i]; // Leggere il byte corrispondente al tasto da inviare
-    Keyboard.press(key); // Premere il tasto
-    delay(100); // Aggiungere un ritardo per assicurare la corretta trasmissione
+    byte key = keySequence[buttonIndex][i]; // Read the byte corresponding to the key to send
+    Keyboard.press(key); // Press the button
+    delay(100); // Add a delay to ensure correct transmission
   }
-  Keyboard.releaseAll(); // Rilasciare il tasto
+  Keyboard.releaseAll(); // Release all pressed keys
 }
 
+// When you type ? and press ENTER on the serial monitor, we display some info:
 void printInfo() {
-    // Stampare un messaggio di benvenuto sul monitor seriale
+    // Print a welcome message on the serial monitor
   Serial.println(F(" .----------------.  .----------------.  .----------------.  .----------------. "));
   Serial.println(F("| .--------------. || .--------------. || .--------------. || .--------------. |"));
   Serial.println(F("| |   ______     | || | _____  _____ | || |    _______   | || |  ____  ____  | |"));
@@ -268,15 +255,17 @@ void printInfo() {
 
   Serial.println();
 
-  Serial.println(F("Benvenuto nello script di Arduino per inviare keystrokes."));
+  Serial.println(F("Welcome to Push Push, an Arduino script for sending keystrokes."));
+  Serial.println();
+  Serial.println(F("Go to https://garubi.github.io/push-push-editor/ to configure"));
 
-    Serial.println(F("Push Push è collegato"));
-    Serial.println(F("Questa è la configurazione:"));
+    Serial.println(F("Push Push connected"));
+    Serial.println(F("Current configuration:"));
     for (int btn = 0; btn < NUM_BUTTONS; btn++) {
         Serial.print(F("Tasto "));
         Serial.println(btn);
         for (int i = 0; i < KEYS_SEQUENCE_SIZE; i++) {
-        byte key = keySequence[btn][i]; // Leggere il byte corrispondente al tasto da inviare
+        byte key = keySequence[btn][i];
         Serial.print(key);
         Serial.print(F(" "));
         }
