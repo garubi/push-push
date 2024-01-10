@@ -7,7 +7,17 @@ Simply connect it to the [editor](https://garubi.github.io/push-push-editor/) an
 
 ![An animated preview of the Push Push editor](animated-editor-preview.gif)
 
-# MIDI sysex implementation for configuration
+# How to build it
+
+## The hardware 
+
+## The software
+
+## The configuration
+
+# References
+
+## MIDI sysex implementation for configuration
 
 The communication between Push Push and the editor is based on the MIDI protocol, exchanging System Exclusive Messages.
 
@@ -39,23 +49,27 @@ const byte OK = 0x01;
 ```
 
 
-Ask the current configuration to Push Push:
+### The Editor ask the current configuration to Push Push:
 
-`REQ GET `
+`F0 X_MANID1 X_MANID2 X_PRODID REQ GET F7`
 
-Push Push answer:
+**Push Push answer:**
 
-`REPL GET VERSION_MAJOR VERION_MINOR VERSION_PATCH X_MODELID BUTTON_QTY KEYS_SEQUENCE_SIZE BTN_n_MODIFIER_CODE_1 BTN_n_MODIFIER_CODE_2 BTN_n_MODIFIER_CODE_3 BTN_n_MODIFIER_CODE_4 BTN_n_KEY_CODE [...]`
+`F0 X_MANID1 X_MANID2 X_PRODID REP GET VERSION_MAJOR VERION_MINOR VERSION_PATCH X_MODELID BUTTON_QTY KEYS_SEQUENCE_SIZE BTN_n_MODIFIER_CODE_1 BTN_n_MODIFIER_CODE_2 BTN_n_MODIFIER_CODE_3 BTN_n_MODIFIER_CODE_4 BTN_n_KEY_CODE [...] F7`
 
-Store the editor's fields as new configuration in Push Push:
+### The Editor stores a new configuration in Push Push:
 
-`REQ SET VERSION_MAJOR VERION_MINOR VERSION_PATCH X_MODELID BUTTON_QTY KEYS_SEQUENCE_SIZE BTN_n_MODIFIER_CODE_1 BTN_n_MODIFIER_CODE_2 BTN_n_MODIFIER_CODE_3 BTN_n_MODIFIER_CODE_4 BTN_n_KEY_CODE [...]`
+`F0 X_MANID1 X_MANID2 X_PRODID REQ SET VERSION_MAJOR VERION_MINOR VERSION_PATCH X_MODELID BUTTON_QTY KEYS_SEQUENCE_SIZE BTN_n_MODIFIER_CODE_1 BTN_n_MODIFIER_CODE_2 BTN_n_MODIFIER_CODE_3 BTN_n_MODIFIER_CODE_4 BTN_n_KEY_CODE [...] F7`
 
-Push Push answer
+**Push Push answer**
 
-`REPL SET  [OK, FAILED ]`
+`F0 X_MANID1 X_MANID2 X_PRODID REP SET  [OK, FAILED ] F7`
 
-# References:
+### Push Push receives a unknown command
+
+**Push Push reply**
+
+`F0 X_MANID1 X_MANID2 X_PRODID REP X_ERROR F7`
 
 ## usbMIDI libraries:
 
@@ -66,7 +80,7 @@ Push Push answer
 
 - https://www.partsnotincluded.com/diy-stream-deck-mini-macro-keyboard/
 
-## change board name:
+## how to change board name:
 
  - https://forum.arduino.cc/t/multiple-leonardos-as-hid-joystick-how-to-change-the-names/402646
 
