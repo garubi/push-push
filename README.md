@@ -1,11 +1,11 @@
 # ![Push Push Logo](push-push-logo.png) Push Push
 
-Push Push is a very easy to build device that provides you with a number of buttons (or pedals) that can send keystrokes combinations to your computer.
+Push Push is a very easy to build device (based on Arduino) that provides you with a number of buttons (or pedals) that can send keystrokes combinations to your computer.
 
 While you can find a lot of similar DIY project on the web, Push Push is pretty unique because it can be configured to send keystrokes of your choice with it's own [editor](https://garubi.github.io/push-push-editor/), without the need to change the firmware code e withaout the need of Arduino compiler.
 Simply connect it to the [editor](https://garubi.github.io/push-push-editor/) and configure your Push Push.
 
-
+![An animated preview of the Push Push editor](animated-editor-preview.gif)
 
 # MIDI sysex implementation for configuration
 
