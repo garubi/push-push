@@ -7,6 +7,10 @@
 // Each button can send a configurable keystroke, including non-printable controls 
 // The configuration of the keys to be sent is saved in the eprom and can be modified via System Exclusive via MIDI USB
 
+// Author: Stefano Garuti 
+// Author url: https://github.com/garubi
+// Author email: sgaruti@gmail.com
+
 // *************** START EDITING HERE *********************** //
 // Depending on the number of buttons you'll use
 // edit the following defines
