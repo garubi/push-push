@@ -22,7 +22,7 @@
   const int buttonPins[NUM_BUTTONS] = {2, 3};
 
   // Debounce time in milliseconds to avoid accidental repeats
-  #define DEBOUNCE_TIME_MS 500
+  #define DEBOUNCE_TIME_MS 150
 
 // *************** STOP EDITING HERE  ********************** //
 
