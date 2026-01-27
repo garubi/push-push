@@ -21,6 +21,9 @@
   // Write the Digital Pins where the buttons are connected
   const int buttonPins[NUM_BUTTONS] = {2, 3};
 
+  // Debounce time in milliseconds to avoid accidental repeats
+  #define DEBOUNCE_TIME_MS 500
+
 // *************** STOP EDITING HERE  ********************** //
 
 // Define the maximum size of the keystroke to send for each button (in bytes)
@@ -60,6 +63,9 @@ int buttonState[NUM_BUTTONS];
 // Create an array to store the keystroke to send for each button
 byte keySequence[NUM_BUTTONS][KEYS_SEQUENCE_SIZE];
 
+// Create an array to store the last trigger time for debouncing
+unsigned long lastTriggerTime[NUM_BUTTONS];
+
 
 // MIDI initialization: we use MIDI only to send e receive the configuration from the editor via SysEx
 USBMIDI_CREATE_DEFAULT_INSTANCE();
@@ -81,6 +87,7 @@ void setup() {
   // Set the button pins as inputs with internal pull-up resistor
   for (int i = 0; i < NUM_BUTTONS; i++) {
     pinMode(buttonPins[i], INPUT_PULLUP);
+    lastTriggerTime[i] = 0; // Initialize debounce timer
   }
 
   
@@ -101,9 +108,13 @@ void loop() {
   for (int i = 0; i < NUM_BUTTONS; i++) {
     buttonState[i] = digitalRead(buttonPins[i]);
     if (buttonState[i] == LOW) { // If the button is pressed (low state)
-    Serial.println(F("premuto"));
-      sendKeySequence(i); // Sends the keystroke associated with the button
-      delay(500); // Add a delay to avoid accidental repeats
+      unsigned long currentTime = millis();
+      // Check if enough time has passed since the last trigger (debounce)
+      if (currentTime - lastTriggerTime[i] >= DEBOUNCE_TIME_MS) {
+        Serial.println(F("premuto"));
+        sendKeySequence(i); // Sends the keystroke associated with the button
+        lastTriggerTime[i] = currentTime; // Update the last trigger time
+      }
     }
   }
 
