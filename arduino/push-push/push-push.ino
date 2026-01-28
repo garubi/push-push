@@ -60,6 +60,9 @@ const byte X_OK = 0x01;
 // Create an array to store the state of the buttons
 int buttonState[NUM_BUTTONS];
 
+// Create an array to store the previous state of the buttons (for detecting transitions)
+int lastButtonState[NUM_BUTTONS];
+
 // Create an array to store the keystroke to send for each button
 byte keySequence[NUM_BUTTONS][KEYS_SEQUENCE_SIZE];
 
@@ -87,6 +90,7 @@ void setup() {
   // Set the button pins as inputs with internal pull-up resistor
   for (int i = 0; i < NUM_BUTTONS; i++) {
     pinMode(buttonPins[i], INPUT_PULLUP);
+    lastButtonState[i] = HIGH; // Initialize to unpressed state
     lastTriggerTime[i] = 0; // Initialize debounce timer
   }
 
@@ -107,8 +111,11 @@ void loop() {
   // Read the state of the buttons and send the corresponding keystroke if pressed
   for (int i = 0; i < NUM_BUTTONS; i++) {
     buttonState[i] = digitalRead(buttonPins[i]);
-    if (buttonState[i] == LOW) { // If the button is pressed (low state)
+    
+    // Detect button press transition (HIGH to LOW)
+    if (buttonState[i] == LOW && lastButtonState[i] == HIGH) {
       unsigned long currentTime = millis();
+      
       // Check if enough time has passed since the last trigger (debounce)
       if (currentTime - lastTriggerTime[i] >= DEBOUNCE_TIME_MS) {
         Serial.println(F("premuto"));
@@ -116,6 +123,9 @@ void loop() {
         lastTriggerTime[i] = currentTime; // Update the last trigger time
       }
     }
+    
+    // Update previous state
+    lastButtonState[i] = buttonState[i];
   }
 
 // **************** PRINT DEVICE'S INFO ON SERIAL MONITOR ************************ //
