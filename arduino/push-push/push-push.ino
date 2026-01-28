@@ -32,7 +32,7 @@
 // firmware version
 const byte VERSION_MAJOR = 1;
 const byte VERSION_MINOR = 0;
-const byte VERSION_PATCH = 1;
+const byte VERSION_PATCH = 3;
 
 // ********************************************************* //
 // SysEx implementation for remote configuration             //
